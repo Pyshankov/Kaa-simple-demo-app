@@ -1,0 +1,9 @@
+**/target
+**/build
+**/*.iml
+**/proguard-rules.pro
+**/gradlew.bat
+**/.gradle
+**/.idea
+
+

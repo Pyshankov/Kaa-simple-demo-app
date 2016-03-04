@@ -1,0 +1,66 @@
+apply plugin: 'com.android.application'
+
+def archiveBuildTypes = ["release"];
+
+android {
+
+lintOptions {
+          abortOnError false
+      }
+
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        applicationId "mobile.example.kaa.kaaproject.org.kaaclientv2"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            if (variant.buildType.name in archiveBuildTypes) {
+                // Update output filename
+                if (variant.versionName != null) {
+                    String name = "analytic-client-${variant.versionName}-${output.baseName}.apk"
+                    output.outputFile = new File(output.outputFile.parent, name)
+                }
+                def taskSuffix = variant.name.capitalize()
+                def assembleTaskName = "assemble${taskSuffix}"
+                if (tasks.findByName(assembleTaskName)) {
+                    def copyAPKTask = tasks.create(name: "archive${taskSuffix}", type: org.gradle.api.tasks.Copy) {
+                        description "Archive/copy APK and mappings.txt to a versioned folder."
+                        print "Copying APK&mappings.txt from: ${buildDir}\n"
+                        from("${buildDir}") {
+                            include "**/mapping/${variant.buildType.name}/mapping.txt"
+                            include "**/apk/${output.outputFile.name}"
+                        }
+                        into "${buildDir}/../../target"
+                        eachFile { file ->
+                            file.path = file.name // so we have a "flat" copy
+                        }
+                        includeEmptyDirs = false
+                    }
+                    tasks[assembleTaskName].finalizedBy = [copyAPKTask]
+                }
+            }
+        }
+    }
+
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.getbase:floatingactionbutton:1.10.1'
+    compile files('libs/kaa-analytic-android.jar')
+}
